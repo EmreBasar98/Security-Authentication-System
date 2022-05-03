@@ -4,7 +4,6 @@ import java.net.*;
 import java.util.Scanner;
 
 class Client {
-
     private final String MAILSERVER_ID = "Mail";
     private final String WEBSERVER_ID = "Web";
     private final String DBSERVER_ID = "Database";
@@ -38,11 +37,20 @@ class Client {
                 System.out.println("Enter password");
                 String password = keyRead.readLine();
 
-                pwrite.println(serverId+password);       // sending to server
+                pwrite.println(createMessage(serverId, password));       // sending to server
                 pwrite.flush();                    // flush the data
                 if ((receiveMessage = receiveRead.readLine()) != null) //receive from server
                 {
                     System.out.println(receiveMessage); // displaying at DOS prompt
+                    while (checkForDeny(receiveMessage)){
+                        System.out.println("Password denied. Please enter password again");
+                        password = keyRead.readLine();
+                        pwrite.println(password);       // sending to server
+                        pwrite.flush();
+                        receiveMessage = receiveRead.readLine();
+                    }
+
+                    System.out.println("pw verified");
                 }
             }
         }
@@ -69,6 +77,11 @@ class Client {
         return serverID;
     }
 
+    private String createMessage(String serverID, String pw) {
+        String msg = serverID+pw;
+        return msg;
+    }
+
     public static void main(String[] args) {
         System.out.println("Client is on!");
         try {
@@ -78,5 +91,9 @@ class Client {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean checkForDeny(String rm) {
+        return rm.equals("Password Denied");
     }
 }
