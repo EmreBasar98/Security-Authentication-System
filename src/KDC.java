@@ -119,7 +119,7 @@ public class KDC {
         BufferedReader bReader = new BufferedReader(new FileReader("KDC_Log.txt"));
         String firstLine = bReader.readLine();
         String plainPW = firstLine.split(" ")[2];
-        System.out.println(plainPW);
+        
         bReader.close();
         return password.equals(plainPW);
     }
