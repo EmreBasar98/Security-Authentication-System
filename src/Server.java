@@ -1,49 +1,28 @@
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 
 public class Server {
+    public static void main(String[] args) throws Exception {
+        ServerSocket sersock = new ServerSocket(3000);
+        Socket sock = sersock.accept();
+        // reading from keyboard (keyRead object)
+        BufferedReader keyRead = new BufferedReader(new InputStreamReader(System.in));
+        // sending to client (pwrite object)
+        OutputStream ostream = sock.getOutputStream();
+        PrintWriter pwrite = new PrintWriter(ostream, true);
 
-    public Server(int port) {
-        try {
-            ServerSocket server = new ServerSocket(port);
-            System.out.println("Server started::");
+        // receiving from server ( receiveRead  object)
+        InputStream istream = sock.getInputStream();
+        BufferedReader receiveRead = new BufferedReader(new InputStreamReader(istream));
 
-            System.out.println("Waiting for a client ........");
-
-            //initialize socket and input stream
-            Socket socket = server.accept();
-            System.out.println("Client accepted.");
-
-            // takes input from the client socket
-            DataInputStream in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-
-            String line = "";
-
-            // reads message from client until "Done" is sent
-            while (!line.equals("Done")) {
-                try {
-                    line = in.readUTF();
-                    System.out.println(line);
-
-                } catch (IOException i) {
-                    System.out.println(i);
-                }
+        String receiveMessage, sendMessage;
+        while (true) {
+            if ((receiveMessage = receiveRead.readLine()) != null) {
+                System.out.println(receiveMessage);
             }
-            System.out.println("Closing connection");
-
-            // close connection
-            socket.close();
-            in.close();
-        } catch (IOException i) {
-            System.out.println(i);
+            sendMessage = keyRead.readLine();
+            pwrite.println(sendMessage);
+            pwrite.flush();
         }
     }
-
-    public static void main(String args[]) {
-        Server serverSideProgram = new Server(5000);
-    }
-
 }
