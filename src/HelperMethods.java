@@ -15,8 +15,8 @@ public class HelperMethods {
 
     public static void log(String p, String msg) {
         try {
-            FileWriter myWriter = new FileWriter(p);
-            myWriter.write(msg);
+            FileWriter myWriter = new FileWriter(p,true);
+            myWriter.write(msg+System.getProperty( "line.separator" ));
             myWriter.close();
         } catch (IOException e) {
             e.printStackTrace();

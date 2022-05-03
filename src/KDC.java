@@ -115,7 +115,12 @@ public class KDC {
         return pw;
     }
 
-    private boolean verifyPassword(String password) {
-        return password.equals("123123");
+    private boolean verifyPassword(String password) throws IOException {
+        BufferedReader bReader = new BufferedReader(new FileReader("KDC_Log.txt"));
+        String firstLine = bReader.readLine();
+        String plainPW = firstLine.split(" ")[2];
+        System.out.println(plainPW);
+        bReader.close();
+        return password.equals(plainPW);
     }
 }
