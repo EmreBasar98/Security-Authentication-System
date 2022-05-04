@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -15,11 +16,18 @@ public class HelperMethods {
 
     public static void log(String p, String msg) {
         try {
-            FileWriter myWriter = new FileWriter(p,true);
-            myWriter.write(msg+System.getProperty( "line.separator" ));
+            FileWriter myWriter = new FileWriter(p, true);
+            myWriter.write(msg + System.getProperty("line.separator"));
             myWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public static void createDirectories(String[] dirs) {
+        for (String dir : dirs) {
+            File creatingDir = new File(dir);
+            creatingDir.mkdir();
         }
     }
 }
