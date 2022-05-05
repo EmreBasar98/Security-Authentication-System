@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
@@ -33,7 +34,9 @@ import java.util.regex.Pattern;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 import sun.security.tools.keytool.CertAndKeyGen;
 import sun.security.x509.X500Name;
@@ -54,29 +57,32 @@ public class KDC {
         createPassword();
         HelperMethods.createDirectories(dirs);
         createKeyPairs(keyHolders);
+        // dneme(HelperMethods.stringToSecretKey(createSessionKey()));
+        // SecretKey sk = HelperMethods.stringToSecretKey(createSessionKey());
+        // decryptText(encryptText(sk), sk);
+
         // getKDCPrivateKey();
 
         // decrypt(encrypt());
-
-        ServerSocket sersock = new ServerSocket(3000);
-        Socket sock = sersock.accept();
-        // reading from keyboard (keyRead object)
-        BufferedReader keyRead = new BufferedReader(new InputStreamReader(System.in));
-        // sending to client (pwrite object)
-        OutputStream ostream = sock.getOutputStream();
-        PrintWriter pwrite = new PrintWriter(ostream, true);
-
-        // receiving from server ( receiveRead object)
-        InputStream istream = sock.getInputStream();
-        BufferedReader receiveRead = new BufferedReader(new InputStreamReader(istream));
-
-        String receiveMessage, sendMessage;
         while (true) {
+
+            ServerSocket sersock = new ServerSocket(3000);
+            Socket sock = sersock.accept();
+            // reading from keyboard (keyRead object)
+            BufferedReader keyRead = new BufferedReader(new InputStreamReader(System.in));
+            // sending to client (pwrite object)
+            OutputStream ostream = sock.getOutputStream();
+            PrintWriter pwrite = new PrintWriter(ostream, true);
+
+            // receiving from server ( receiveRead object)
+            InputStream istream = sock.getInputStream();
+            BufferedReader receiveRead = new BufferedReader(new InputStreamReader(istream));
+
+            String receiveMessage, sendMessage;
             receiveMessage = receiveRead.readLine();
             byte[] decodedString = Base64.getDecoder().decode(receiveMessage.split(",")[1]);
             System.out.println(receiveMessage.split(",")[0]);
-            System.out.println(HelperMethods.decrypt(decodedString));
-            String pw = extractPW(HelperMethods.decrypt(decodedString));
+            String pw = extractPW(HelperMethods.decrypt(decodedString, "KDC"));
 
             while (!verifyPassword(pw)) {
                 String msgDirect = KDC_ID + "->" + CLIENT_ID;
@@ -88,9 +94,13 @@ public class KDC {
             }
 
             System.out.println("PW verified");
-            sendMessage = "PW verified";
+            sendMessage = messageToClient(extractServerID(HelperMethods.decrypt(decodedString, "KDC")));
             pwrite.println(sendMessage);
             pwrite.flush();
+
+            sersock.close();
+            ostream.close();
+            istream.close();
         }
     }
 
@@ -138,6 +148,10 @@ public class KDC {
 
     private String extractPW(String clMessage) {
         return clMessage.split(",")[1];
+    }
+
+    private String extractServerID(String clMessage) {
+        return clMessage.split(",")[2];
     }
 
     private boolean verifyPassword(String password) throws IOException {
@@ -243,6 +257,40 @@ public class KDC {
         } catch (Exception e) {
             System.out.println("ERROR, keytool command could not be executed!");
         }
+    }
+
+    private String messageToClient(String serverID)
+            throws NoSuchAlgorithmException, InvalidKeyException, CertificateException, FileNotFoundException,
+            NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+        String sessionKey = createSessionKey();
+        String ts2 = HelperMethods.now();
+        String messageToEncrypt = String.join(",", sessionKey, serverID, ts2);
+        byte[] encryptedMessage = HelperMethods.encrypt(messageToEncrypt, "Alice");
+        byte[] ticket = HelperMethods.encrypt(String.join(",", "Alice", serverID, ts2, sessionKey), serverID);
+        String message = String.join(",", HelperMethods.byteToB64(encryptedMessage), HelperMethods.byteToB64(ticket));
+        return message;
+    }
+
+    private String createSessionKey() throws NoSuchAlgorithmException {
+        KeyGenerator keygenerator = KeyGenerator.getInstance("AES");
+        // Initializing the KeyGenerator
+        keygenerator.init(256, new SecureRandom());
+        // Generating a key
+        SecretKey key = keygenerator.generateKey();
+        return Base64.getEncoder().encodeToString(key.getEncoded());
+    }
+
+    private void dneme(SecretKey sessionKey) throws NoSuchAlgorithmException, NoSuchPaddingException,
+            InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
+        byte[] input = "numan".getBytes();
+        cipher.update(input);
+        byte[] cipherText = cipher.doFinal();
+
+        Cipher cipher2 = Cipher.getInstance("AES");
+        cipher2.init(Cipher.DECRYPT_MODE, sessionKey);
+        System.out.println(new String(cipher.doFinal(cipherText)));
     }
 
     // private byte[] encrypt()
