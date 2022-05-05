@@ -1,6 +1,12 @@
 import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
 import java.io.*;
 import java.net.*;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -20,10 +26,8 @@ class Client {
     private final int WEBSERVER_PORT = 3002;
     private final int DBSERVER_PORT = 3003;
 
-
-
     public Client() throws Exception {
-        HashMap<String, Integer> ports = new HashMap<>(); 
+        HashMap<String, Integer> ports = new HashMap<>();
         ports.put(MAILSERVER_ID, MAILSERVER_PORT);
         ports.put(WEBSERVER_ID, WEBSERVER_PORT);
         ports.put(DBSERVER_ID, DBSERVER_PORT);
@@ -37,27 +41,26 @@ class Client {
             OutputStream kdc_ostream = kdcSock.getOutputStream();
             PrintWriter kdc_pwrite = new PrintWriter(kdc_ostream, true);
 
-            // receiving from server ( receiveRead  object)
+            // receiving from server ( receiveRead object)
             InputStream kdc_istream = kdcSock.getInputStream();
             BufferedReader kdc_receiveRead = new BufferedReader(new InputStreamReader(kdc_istream));
 
-
             String receiveMessage, sendMessage;
-            
+
             String serverId = serverConnection(keyRead);
 
             System.out.println("Enter password");
             String password = keyRead.readLine();
 
-            kdc_pwrite.println(createMessage(serverId, password));       // sending to server
-            kdc_pwrite.flush();                    // flush the data
-            if ((receiveMessage = kdc_receiveRead.readLine()) != null) //receive from server
+            kdc_pwrite.println(createMessageToKDC(serverId, password)); // sending to server
+            kdc_pwrite.flush(); // flush the data
+            if ((receiveMessage = kdc_receiveRead.readLine()) != null) // receive from server
             {
                 System.out.println(receiveMessage); // displaying at DOS prompt
-                while (checkForDeny(receiveMessage)){
+                while (checkForDeny(receiveMessage)) {
                     System.out.println("Password denied. Please enter password again");
                     password = keyRead.readLine();
-                    kdc_pwrite.println(password);       // sending to server
+                    kdc_pwrite.println(password); // sending to server
                     kdc_pwrite.flush();
                     receiveMessage = kdc_receiveRead.readLine();
                 }
@@ -74,18 +77,17 @@ class Client {
             OutputStream server_ostream = serverScok.getOutputStream();
             PrintWriter server_pwrite = new PrintWriter(server_ostream, true);
 
-            // // receiving from server ( receiveRead  object)
+            // // receiving from server ( receiveRead object)
             InputStream server_istream = serverScok.getInputStream();
             BufferedReader server_receiveRead = new BufferedReader(new InputStreamReader(server_istream));
 
             String nonce1 = "5";
-            server_pwrite.println(CLIENT_ID+nonce1);
+            server_pwrite.println(CLIENT_ID + nonce1);
             server_pwrite.flush();
 
             receiveMessage = server_receiveRead.readLine();
             System.out.println(receiveMessage);
 
-            
             server_pwrite.println("gelennonce2");
             server_pwrite.flush();
         }
@@ -105,23 +107,26 @@ class Client {
                     serverID.equalsIgnoreCase(WEBSERVER_ID) ||
                     serverID.equalsIgnoreCase(DBSERVER_ID)))
                 isValid = true;
-            else System.out.println("Please enter one of the options...");
+            else
+                System.out.println("Please enter one of the options...");
         }
         serverID = serverID.toLowerCase();
         serverID = serverID.substring(0, 1).toUpperCase() + serverID.substring(1);
         return serverID;
     }
 
-    private String createMessage(String serverID, String pw) {
-        String msg = serverID+pw;
-        return msg;
+    private String createMessageToKDC(String serverID, String pw)
+            throws InvalidKeyException, CertificateException, FileNotFoundException, NoSuchAlgorithmException,
+            NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+        String msgToEncrypted = String.join(",", "Alice", pw, serverID, HelperMethods.now());
+        byte[] encryptedMsg = HelperMethods.encrypt(msgToEncrypted);
+        String lastMsg = String.join(",", "Alice", HelperMethods.byteToB64(encryptedMsg));
+        return lastMsg;
     }
 
     private boolean checkForDeny(String rm) {
         return rm.equals("Password Denied");
     }
-
-
 
     public static void main(String[] args) {
         System.out.println("Client is on!");

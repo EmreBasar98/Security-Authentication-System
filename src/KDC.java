@@ -56,7 +56,7 @@ public class KDC {
         createKeyPairs(keyHolders);
         // getKDCPrivateKey();
 
-        decrypt(encrypt());
+        // decrypt(encrypt());
 
         ServerSocket sersock = new ServerSocket(3000);
         Socket sock = sersock.accept();
@@ -73,7 +73,10 @@ public class KDC {
         String receiveMessage, sendMessage;
         while (true) {
             receiveMessage = receiveRead.readLine();
-            String pw = extractPW(receiveMessage);
+            byte[] decodedString = Base64.getDecoder().decode(receiveMessage.split(",")[1]);
+            System.out.println(receiveMessage.split(",")[0]);
+            System.out.println(HelperMethods.decrypt(decodedString));
+            String pw = extractPW(HelperMethods.decrypt(decodedString));
 
             while (!verifyPassword(pw)) {
                 String msgDirect = KDC_ID + "->" + CLIENT_ID;
@@ -134,22 +137,14 @@ public class KDC {
     }
 
     private String extractPW(String clMessage) {
-        String pw = null;
-        if (clMessage.contains("Web")) {
-            pw = clMessage.split("Web")[1];
-        } else if (clMessage.contains("Database")) {
-            pw = clMessage.split("Database")[1];
-        } else if (clMessage.contains("Mail")) {
-            pw = clMessage.split("Mail")[1];
-        }
-        return pw;
+        return clMessage.split(",")[1];
     }
 
     private boolean verifyPassword(String password) throws IOException {
         BufferedReader bReader = new BufferedReader(new FileReader("KDC_Log.txt"));
         String firstLine = bReader.readLine();
         String plainPW = firstLine.split(" ")[2];
-
+        System.out.println(plainPW);
         bReader.close();
         return password.equals(plainPW);
     }
@@ -160,11 +155,12 @@ public class KDC {
         for (String keyHolder : keyHolders) {
             CertAndKeyGen certAndKeyGen = new CertAndKeyGen("RSA", "SHA256withRSA");
             certAndKeyGen.generate(2048);
-            if (keyHolder.equals("KDC")) {
-                System.out.println("createKDC");
-                // System.out.println(certAndKeyGen.getPrivateKey().getEncoded());
-                System.out.println(Arrays.toString(certAndKeyGen.getPublicKey().getEncoded()));
-            }
+            // if (keyHolder.equals("KDC")) {
+            // System.out.println("createKDC");
+            // // System.out.println(certAndKeyGen.getPrivateKey().getEncoded());
+            // //
+            // System.out.println(Arrays.toString(certAndKeyGen.getPublicKey().getEncoded()));
+            // }
             FileWriter myWriter = new FileWriter("keys/" + keyHolder);
             myWriter.write(HelperMethods.byteToB64(certAndKeyGen.getPrivateKey().getEncoded()));
             myWriter.close();
@@ -249,42 +245,46 @@ public class KDC {
         }
     }
 
-    private byte[] encrypt()
-            throws CertificateException, FileNotFoundException, NoSuchAlgorithmException,
-            NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        PublicKey publicKey = CertificateFactory.getInstance("X.509")
-                .generateCertificate(new FileInputStream("cert/KDC")).getPublicKey();
+    // private byte[] encrypt()
+    // throws CertificateException, FileNotFoundException, NoSuchAlgorithmException,
+    // NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,
+    // BadPaddingException {
+    // PublicKey publicKey = CertificateFactory.getInstance("X.509")
+    // .generateCertificate(new FileInputStream("cert/KDC")).getPublicKey();
 
-        System.out.println("---------------");
-        System.out.println(Arrays.toString(publicKey.getEncoded()));
-        Cipher cipher = Cipher.getInstance("RSA");
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        byte[] input = "Welcome to Tutorialspoint".getBytes();
-        cipher.update(input);
-        byte[] cipherText = cipher.doFinal();
-        System.out.println(cipherText);
-        return cipherText;
-    }
+    // System.out.println("---------------");
+    // System.out.println(Arrays.toString(publicKey.getEncoded()));
+    // Cipher cipher = Cipher.getInstance("RSA");
+    // cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+    // byte[] input = "Welcome to Tutorialspoint".getBytes();
+    // cipher.update(input);
+    // byte[] cipherText = cipher.doFinal();
+    // System.out.println(cipherText);
+    // return cipherText;
+    // }
 
-    private void decrypt(byte[] ciphertext)
-            throws CertificateException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-            InvalidKeySpecException, IOException, IllegalBlockSizeException, BadPaddingException {
-        Cipher cipher = Cipher.getInstance("RSA");
-        System.out.println("......");
-        cipher.init(Cipher.DECRYPT_MODE, getKDCPrivateKey());
-        System.out.println("-------");
-        System.out.println(new String(cipher.doFinal(ciphertext)));
+    // private void decrypt(byte[] ciphertext)
+    // throws CertificateException, NoSuchAlgorithmException,
+    // NoSuchPaddingException, InvalidKeyException,
+    // InvalidKeySpecException, IOException, IllegalBlockSizeException,
+    // BadPaddingException {
+    // Cipher cipher = Cipher.getInstance("RSA");
+    // System.out.println("......");
+    // cipher.init(Cipher.DECRYPT_MODE, getKDCPrivateKey());
+    // System.out.println("-------");
+    // System.out.println(new String(cipher.doFinal(ciphertext)));
 
-    }
+    // }
 
-    public PrivateKey getPrivateKey(byte[] privateKeyInfo) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        // getting the private key from given byte array
+    // public PrivateKey getPrivateKey(byte[] privateKeyInfo) throws
+    // NoSuchAlgorithmException, InvalidKeySpecException {
+    // // getting the private key from given byte array
 
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyInfo);
+    // KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+    // PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyInfo);
 
-        return keyFactory.generatePrivate(privateKeySpec);
-    }
+    // return keyFactory.generatePrivate(privateKeySpec);
+    // }
 
     // private String signature(StringBuilder certificate, String hashType)
     // throws NoSuchAlgorithmException, InvalidKeyException, SignatureException,
@@ -302,16 +302,16 @@ public class KDC {
     // return Base64.getEncoder().encodeToString(signatureBytes);
     // }
 
-    private PrivateKey getKDCPrivateKey() throws IOException,
-            NoSuchAlgorithmException, InvalidKeySpecException {
-        BufferedReader bReader = new BufferedReader(new FileReader("keys/KDC"));
-        String firstLine = bReader.readLine();
-        bReader.close();
-        byte[] privateKeyInfo = Base64.getDecoder().decode(firstLine);
-        PrivateKey privateKey = getPrivateKey(privateKeyInfo);
-        System.out.println("getKDC");
-        // System.out.println(Arrays.toString(privateKey.getEncoded()));
-        return privateKey;
-    }
+    // private PrivateKey getKDCPrivateKey() throws IOException,
+    // NoSuchAlgorithmException, InvalidKeySpecException {
+    // BufferedReader bReader = new BufferedReader(new FileReader("keys/KDC"));
+    // String firstLine = bReader.readLine();
+    // bReader.close();
+    // byte[] privateKeyInfo = Base64.getDecoder().decode(firstLine);
+    // PrivateKey privateKey = getPrivateKey(privateKeyInfo);
+    // System.out.println("getKDC");
+    // // System.out.println(Arrays.toString(privateKey.getEncoded()));
+    // return privateKey;
+    // }
 
 }
