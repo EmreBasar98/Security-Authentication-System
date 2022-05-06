@@ -6,6 +6,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -39,7 +42,7 @@ public class HelperMethods {
     }
 
     public static String now() {
-        return new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new Date());
+        return new SimpleDateFormat("dd MM yyyy HH:mm:ss").format(new Date());
     }
 
     public static void log(String p, String msg) {
@@ -57,6 +60,17 @@ public class HelperMethods {
             File creatingDir = new File(dir);
             creatingDir.mkdir();
         }
+        // for (String dir : dirs) {
+        // Path path = Paths.get(dir);
+        // if (Files.exists(path)) {
+        // new File(dir).delete();
+        // System.out.println("diretory silindi");
+        // }
+
+        // new File(dir).mkdir();
+        // System.out.println("diretory oluştu");
+        // }
+
     }
 
     public static byte[] encrypt(String msg, String keyHolder)

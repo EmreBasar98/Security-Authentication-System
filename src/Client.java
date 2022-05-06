@@ -59,51 +59,60 @@ class Client {
             System.out.println("Enter password");
             String password = keyRead.readLine();
 
-            //First message to KDC
+            // First message to KDC
             kdc_pwrite.println(createMessageToKDC(serverId, password)); // sending to server
             kdc_pwrite.flush(); // flush the data
 
-            //According to the response, second message, from KDC prepare third message
+            // According to the response, second message, from KDC prepare third message
             String thirdStep = null;
             SecretKey sessionKey = null;
             String nonce1 = null;
             if ((receiveMessage = kdc_receiveRead.readLine()) != null) // receive from server
             {
-                //ask for correct pw till get it
+                // ask for correct pw till get it
                 while (checkForDeny(receiveMessage)) {
                     System.out.println("Password denied. Please enter password again");
-                    //buraya pw denied logu
+                    HelperMethods.log("Alice_Log.txt", HelperMethods.now() + " KDC->Alice : Password Denied");
                     password = keyRead.readLine();
                     kdc_pwrite.println(password); // sending to server
                     kdc_pwrite.flush();
                     receiveMessage = kdc_receiveRead.readLine();
                 }
+                HelperMethods.log("Alice_Log.txt", HelperMethods.now() + " KDC->Alice : Password Verified");
+                HelperMethods.log("Alice_Log.txt", HelperMethods.now() + " KDC->Alice : " + receiveMessage);
                 String[] KDCMessageParts = receiveMessage.split(",");
 
-                String decryptedMessageFirst = HelperMethods.decrypt(HelperMethods.Base64toByte(KDCMessageParts[0]), "Alice");
-                String decryptedTicket = HelperMethods.decrypt(HelperMethods.Base64toByte(KDCMessageParts[1]), serverId);
-                System.out.println("Decrypted Message 2 and ticket :"+ decryptedMessageFirst+ "," + decryptedTicket);
-                //getting the session key from message
+                String decryptedMessageFirst = HelperMethods.decrypt(HelperMethods.Base64toByte(KDCMessageParts[0]),
+                        "Alice");
+                String decryptedTicket = HelperMethods.decrypt(HelperMethods.Base64toByte(KDCMessageParts[1]),
+                        serverId);
+                HelperMethods.log("Alice_Log.txt",
+                        HelperMethods.now() + " Message Decrypted : " + decryptedMessageFirst);
+                System.out.println("Decrypted Message 2 and ticket :" + decryptedMessageFirst + "," + decryptedTicket);
+                // getting the session key from message
                 sessionKey = extractSessionKey(decryptedMessageFirst);
 
-                //generation and encrypting a nonce value to be sent to server in third message
+                // generation and encrypting a nonce value to be sent to server in third message
                 String[] encryptedNonceArray = HelperMethods.encryptNonce(sessionKey, null);
                 String encryptedNonce1 = encryptedNonceArray[0];
                 nonce1 = encryptedNonceArray[1];
-                System.out.println("Nonce1 : " +nonce1);
-                //finalizing the structure of the third message
+                System.out.println("Nonce1 : " + nonce1);
+                // finalizing the structure of the third message
                 thirdStep = String.join(",", "Alice", KDCMessageParts[1], encryptedNonce1);
-                System.out.println("Third Message : "+ thirdStep);
+                HelperMethods.log("Alice_Log.txt",
+                        HelperMethods.now() + " Alice->" + serverId + " : " + "Alice " + nonce1);
+                HelperMethods.log("Alice_Log.txt",
+                        HelperMethods.now() + " Alice->" + serverId + " : " + thirdStep);
+                System.out.println("Third Message : " + thirdStep);
 
             }
-            //close connection with KDC since it will not be used in this session again
+            // close connection with KDC since it will not be used in this session again
             kdcSock.close();
             kdc_istream.close();
             kdc_ostream.close();
 
-            //creating a connection with the server
+            // creating a connection with the server
             Socket serverScok = new Socket("127.0.0.1", ports.get(serverId));
-
 
             // sending to server (pwrite object)
             OutputStream server_ostream = serverScok.getOutputStream();
@@ -113,16 +122,19 @@ class Client {
             InputStream server_istream = serverScok.getInputStream();
             BufferedReader server_receiveRead = new BufferedReader(new InputStreamReader(server_istream));
 
-            //sending the third message to server
+            // sending the third message to server
             server_pwrite.println(thirdStep);
             server_pwrite.flush();
 
-            //recieving the fourth message from server and gathering necessary none value from it
+            // recieving the fourth message from server and gathering necessary none value
+            // from it
             receiveMessage = server_receiveRead.readLine();
+            HelperMethods.log("Alice_Log.txt", HelperMethods.now() + " " + serverId + "->Alice : " + receiveMessage);
             String nonce2 = handleFourthMessage(receiveMessage, sessionKey, nonce1);
 
-            //encrypting the nonce value to be sent to server
-            String fifthMessage = prepareFifthMessage(nonce2, sessionKey);
+            // encrypting the nonce value to be sent to server
+            String fifthMessage = prepareFifthMessage(nonce2, sessionKey, serverId);
+            HelperMethods.log("Alice_Log.txt", HelperMethods.now() + " Alice->" + serverId + " : " + fifthMessage);
             server_pwrite.println(fifthMessage);
             server_pwrite.flush();
         }
@@ -153,9 +165,14 @@ class Client {
     private String createMessageToKDC(String serverID, String pw)
             throws InvalidKeyException, CertificateException, FileNotFoundException, NoSuchAlgorithmException,
             NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-        String msgToEncrypted = String.join(",", "Alice", pw, serverID, HelperMethods.now());
+        String timestamp = HelperMethods.now();
+        String msgToEncrypted = String.join(",", "Alice", pw, serverID, timestamp);
         byte[] encryptedMsg = HelperMethods.encrypt(msgToEncrypted, "KDC");
         String lastMsg = String.join(",", "Alice", HelperMethods.byteToB64(encryptedMsg));
+        String logMsg1 = timestamp + " Alice->KDC : " + msgToEncrypted;
+        String logMsg2 = timestamp + " Alice->KDC : " + lastMsg;
+        HelperMethods.log("Alice_Log.txt", logMsg1);
+        HelperMethods.log("Alice_Log.txt", logMsg2);
         return lastMsg;
     }
 
@@ -182,7 +199,7 @@ class Client {
     private String handleFourthMessage(String msg, SecretKey sessionKey, String oldNonce1) throws InvalidKeyException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         String decryptedMessage = HelperMethods.decryptNonce(msg, sessionKey);
-        System.out.println("Fourth Message from server : "+decryptedMessage);
+        System.out.println("Fourth Message from server : " + decryptedMessage);
         String nonce1 = decryptedMessage.split(",")[0];
         String nonce2 = decryptedMessage.split(",")[1];
         BigInteger nonce1NewBigInt = new BigInteger(nonce1);
@@ -191,16 +208,18 @@ class Client {
             System.out.println("Authentication is failed!");
             System.exit(1);
         }
+        HelperMethods.log("Alice_Log.txt", HelperMethods.now() + " Message Decrypted : N1 is OK, N2=" + nonce2);
         return nonce2;
     }
 
-    private String prepareFifthMessage(String nonce2, SecretKey sessionKey) throws InvalidKeyException,
+    private String prepareFifthMessage(String nonce2, SecretKey sessionKey, String serverID) throws InvalidKeyException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         System.out.println("------------------------");
         System.out.println("originalnonce2: " + nonce2);
         nonce2 = HelperMethods.noncePlusOne(nonce2);
         System.out.println("nonce2:         " + nonce2);
         System.out.println("------------------------");
+        HelperMethods.log("Alice_Log.txt", HelperMethods.now() + " Alice->" + serverID + " : " + nonce2);
         return HelperMethods.encryptNonce(sessionKey, nonce2)[0];
     }
 
