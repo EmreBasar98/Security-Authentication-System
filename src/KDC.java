@@ -57,13 +57,7 @@ public class KDC {
         createPassword();
         HelperMethods.createDirectories(dirs);
         createKeyPairs(keyHolders);
-        // dneme(HelperMethods.stringToSecretKey(createSessionKey()));
-        // SecretKey sk = HelperMethods.stringToSecretKey(createSessionKey());
-        // decryptText(encryptText(sk), sk);
 
-        // getKDCPrivateKey();
-
-        // decrypt(encrypt());
         while (true) {
 
             ServerSocket sersock = new ServerSocket(3000);
@@ -81,7 +75,7 @@ public class KDC {
             String receiveMessage, sendMessage;
             receiveMessage = receiveRead.readLine();
             byte[] decodedString = Base64.getDecoder().decode(receiveMessage.split(",")[1]);
-            System.out.println(receiveMessage.split(",")[0]);
+
             String pw = extractPW(HelperMethods.decrypt(decodedString, "KDC"));
 
             while (!verifyPassword(pw)) {
@@ -147,6 +141,7 @@ public class KDC {
     }
 
     private String extractPW(String clMessage) {
+        System.out.println("First Message From Client : " + clMessage);
         return clMessage.split(",")[1];
     }
 
@@ -158,7 +153,6 @@ public class KDC {
         BufferedReader bReader = new BufferedReader(new FileReader("KDC_Log.txt"));
         String firstLine = bReader.readLine();
         String plainPW = firstLine.split(" ")[2];
-        System.out.println(plainPW);
         bReader.close();
         return password.equals(plainPW);
     }
@@ -170,7 +164,6 @@ public class KDC {
             CertAndKeyGen certAndKeyGen = new CertAndKeyGen("RSA", "SHA256withRSA");
             certAndKeyGen.generate(2048);
             // if (keyHolder.equals("KDC")) {
-            // System.out.println("createKDC");
             // // System.out.println(certAndKeyGen.getPrivateKey().getEncoded());
             // //
             // System.out.println(Arrays.toString(certAndKeyGen.getPublicKey().getEncoded()));
@@ -268,6 +261,7 @@ public class KDC {
         byte[] encryptedMessage = HelperMethods.encrypt(messageToEncrypt, "Alice");
         byte[] ticket = HelperMethods.encrypt(String.join(",", "Alice", serverID, ts2, sessionKey), serverID);
         String message = String.join(",", HelperMethods.byteToB64(encryptedMessage), HelperMethods.byteToB64(ticket));
+        System.out.println("Send to Client : " + message);
         return message;
     }
 
@@ -280,18 +274,18 @@ public class KDC {
         return Base64.getEncoder().encodeToString(key.getEncoded());
     }
 
-    private void dneme(SecretKey sessionKey) throws NoSuchAlgorithmException, NoSuchPaddingException,
-            InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
-        byte[] input = "numan".getBytes();
-        cipher.update(input);
-        byte[] cipherText = cipher.doFinal();
-
-        Cipher cipher2 = Cipher.getInstance("AES");
-        cipher2.init(Cipher.DECRYPT_MODE, sessionKey);
-        System.out.println(new String(cipher.doFinal(cipherText)));
-    }
+//    private void dneme(SecretKey sessionKey) throws NoSuchAlgorithmException, NoSuchPaddingException,
+//            InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+//        Cipher cipher = Cipher.getInstance("AES");
+//        cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
+//        byte[] input = "numan".getBytes();
+//        cipher.update(input);
+//        byte[] cipherText = cipher.doFinal();
+//
+//        Cipher cipher2 = Cipher.getInstance("AES");
+//        cipher2.init(Cipher.DECRYPT_MODE, sessionKey);
+//        System.out.println(new String(cipher.doFinal(cipherText)));
+//    }
 
     // private byte[] encrypt()
     // throws CertificateException, FileNotFoundException, NoSuchAlgorithmException,

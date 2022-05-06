@@ -65,14 +65,11 @@ public class HelperMethods {
         PublicKey publicKey = CertificateFactory.getInstance("X.509")
                 .generateCertificate(new FileInputStream("cert/" + keyHolder)).getPublicKey();
 
-        // System.out.println("---------------");
-        // System.out.println(Arrays.toString(publicKey.getEncoded()));
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
         byte[] input = msg.getBytes();
         cipher.update(input);
         byte[] cipherText = cipher.doFinal();
-        // System.out.println(cipherText);
         return cipherText;
     }
 
@@ -92,8 +89,6 @@ public class HelperMethods {
         bReader.close();
         byte[] privateKeyInfo = Base64.getDecoder().decode(firstLine);
         PrivateKey privateKey = getPrivateKey(privateKeyInfo);
-        System.out.println("getKDC");
-        // System.out.println(Arrays.toString(privateKey.getEncoded()));
         return privateKey;
     }
 
@@ -112,7 +107,7 @@ public class HelperMethods {
         byte[] decodedKey = HelperMethods.Base64toByte(stringKey);
         // rebuild key using SecretKeySpec
         SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
-        System.out.println("decoded key" + Arrays.toString(originalKey.getEncoded()));
+
         return originalKey;
     }
 
@@ -122,7 +117,6 @@ public class HelperMethods {
         // SecretKeySpec secretKey = new SecretKeySpec(sessionKey.getBytes(), "AES");
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.DECRYPT_MODE, sessionKey);
-        System.out.println("noncecc" + Arrays.toString((cipher.doFinal(Base64toByte(nonce)))));
         return new String(cipher.doFinal(Base64toByte(nonce)));
     }
 
@@ -135,8 +129,7 @@ public class HelperMethods {
         cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
         byte[] input = nonce.getBytes();
         byte[] cipherText = cipher.doFinal(input);
-        System.out.println("btob64 npnce" + cipherText.toString());
-        System.out.println("cippher" + Arrays.toString(cipherText));
+
         String[] returnArray = { HelperMethods.byteToB64(cipherText), nonce };
         return returnArray;
     }
@@ -153,18 +146,13 @@ public class HelperMethods {
         // Producing a random order alphanumeric string as password
         for (int i = 0; i < nonceLength; i++)
             nonce.append(digit.charAt(random.nextInt(digit.length())));
-        System.out.println("ournonce" + nonce.toString());
+
         return nonce.toString();
     }
 
     public static String noncePlusOne(String nonceValue) {
         BigInteger nonce = new BigInteger(nonceValue);
-        System.out.println("-----------------");
-        System.out.println("nonceValue" + nonceValue);
         nonce = nonce.add(new BigInteger("1"));
-        System.out.println("nonce1" + nonce.toString());
-        System.out.println("-----------------");
-
         return nonce.toString();
     }
 

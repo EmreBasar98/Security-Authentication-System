@@ -8,7 +8,7 @@ public class WebServer {
 
     public static void main(String[] args) throws Exception {
         System.out.println("Web server is on!");
-        try{Server.run(WEB_PORT);}
+        try{Server.run(WEB_PORT, "Web");}
         catch(SocketException e) {System.out.println("Client has lost the connection...");}
     }
 }

@@ -9,7 +9,7 @@ public class MailServer {
 
     public static void main(String[] args) throws Exception {
         System.out.println("Mail server is on!");
-        try{Server.run(MAIL_PORT);}
+        try{Server.run(MAIL_PORT, "Mail");}
         catch(SocketException e) {System.out.println("Client has lost the connection...");}
     }
 }
